@@ -60,6 +60,10 @@ export function SmoothScroll() {
     }
 
     lenis.on("scroll", ScrollTrigger.update)
+    lenis.on("scroll", ({ velocity }: { velocity: number }) => {
+      const v = Math.max(-1, Math.min(1, velocity / 28))
+      document.documentElement.style.setProperty("--scroll-v", v.toFixed(3))
+    })
     const tick = (time: number) => {
       lenis.raf(time * 1000)
     }

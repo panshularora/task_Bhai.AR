@@ -1,9 +1,10 @@
 import { useGSAP } from "@gsap/react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-import { useRef } from "react"
-import { CATEGORY_META, PLACES } from "../data/places"
+import { useRef, useState } from "react"
+import { CATEGORY_META } from "../data/places"
 import { DELHI, formatKm, haversineKm } from "../lib/geo"
+import { ZONE_META, ZONES } from "../lib/zones"
 import { useDay } from "../state"
 import { CATEGORIES } from "../types"
 
@@ -15,6 +16,8 @@ export function Explore() {
     setQuery,
     category,
     setCategory,
+    zone,
+    setZone,
     filtered,
     openPlace,
     osmHits,
@@ -22,10 +25,13 @@ export function Explore() {
     addStop,
     flyTo,
     userLoc,
+    isSaved,
   } = useDay()
+  const [keptOnly, setKeptOnly] = useState(false)
   const origin = userLoc ?? DELHI
-  const featured = filtered[0] ?? PLACES[0]
-  const rest = filtered.filter((p) => p.id !== featured.id).slice(0, 2)
+  const pool = keptOnly ? filtered.filter((p) => isSaved(p.id)) : filtered
+  const featured = pool[0]
+  const rest = featured ? pool.filter((p) => p.id !== featured.id).slice(0, 2) : []
   const root = useRef<HTMLElement>(null)
 
   useGSAP(
@@ -63,7 +69,7 @@ export function Explore() {
         scrollTrigger: { trigger: el, start: "top 78%" },
       })
     },
-    { scope: root, dependencies: [featured.id] },
+    { scope: root, dependencies: [featured?.id] },
   )
 
   return (
@@ -100,9 +106,39 @@ export function Explore() {
             </button>
           ))}
         </div>
+        <div className="chips" role="tablist" aria-label="Neighborhoods">
+          <button
+            className={`chip${zone === "all" ? " is-on" : ""}`}
+            onClick={() => setZone("all")}
+          >
+            Whole city
+          </button>
+          {ZONES.map((z) => (
+            <button
+              key={z}
+              className={`chip${zone === z ? " is-on" : ""}`}
+              onClick={() => setZone(z)}
+            >
+              {ZONE_META[z].label}
+            </button>
+          ))}
+        </div>
+        <div className="chips" role="group" aria-label="Saved places">
+          <button
+            className={`chip${keptOnly ? " is-on" : ""}`}
+            onClick={() => setKeptOnly((v) => !v)}
+            aria-pressed={keptOnly}
+          >
+            Kept
+          </button>
+        </div>
       </div>
-      {filtered.length === 0 ? (
-        <p className="empty">No curated match. Try the OpenStreetMap hits below, or clear filters.</p>
+      {!featured ? (
+        <p className="empty">
+          {keptOnly
+            ? "Nothing kept yet. Open a place and tap Keep this."
+            : "No curated match. Try the OpenStreetMap hits below, or clear filters."}
+        </p>
       ) : (
         <div className="spread">
           <button type="button" className="feature-card from-right" onClick={() => openPlace(featured.id)}>

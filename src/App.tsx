@@ -12,6 +12,7 @@ import { Metro } from "./components/Metro"
 import { Nav } from "./components/Nav"
 import { Overlay } from "./components/Overlay"
 import { Plan } from "./components/Plan"
+import { Orbit } from "./components/Orbit"
 import { DayPath, FivePm, Hangouts, LateNight, Morning, WhereWeGo } from "./components/Scrapbook"
 import { SmoothScroll } from "./components/SmoothScroll"
 import { Twin } from "./components/Twin"
@@ -85,6 +86,7 @@ function Frame() {
       <Hero />
       <Marquee />
       <DayPath />
+      <Orbit />
       <Morning />
       <WhereWeGo />
       <FivePm />

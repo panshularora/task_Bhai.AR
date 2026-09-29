@@ -83,7 +83,9 @@ export function Hero() {
         <div className="zine-type">
           <p className="hand zine-kicker">ok so this is</p>
           <h1 className="zine-word">
-            <span className="zine-en">DELHI</span>
+            <a className="zine-en" href="#want">
+              DELHI
+            </a>
             <span className="zine-hi">दिल्ली</span>
           </h1>
           <p className="zine-cut" ref={lineRef}>

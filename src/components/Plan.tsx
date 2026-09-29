@@ -1,11 +1,19 @@
 import { useMemo, useState } from "react"
 import { METRO_STATIONS } from "../data/metro"
-import { CATEGORY_META, PLACES, PRESETS } from "../data/places"
+import { PLACES, PRESETS } from "../data/places"
 import { composeDay } from "../lib/compose"
 import { DELHI, estimateTravelMin, formatMin, placeToStop } from "../lib/geo"
 import { useDay } from "../state"
-import { CATEGORIES } from "../types"
 import type { Category } from "../types"
+import { Magnetic } from "./Magnetic"
+
+const INTENTS: { id: string; label: string; line: string; cats: Category[] }[] = [
+  { id: "chaotic", label: "Chaotic", line: "galis, markets, night", cats: ["hidden", "market", "nightlife", "food"] },
+  { id: "chill", label: "Chill", line: "gardens, tombs, slow", cats: ["heritage", "hidden", "experience"] },
+  { id: "foodie", label: "Foodie", line: "paratha to jalebi", cats: ["food", "market"] },
+  { id: "culture", label: "Culture", line: "forts, stepwells", cats: ["heritage", "experience"] },
+  { id: "night", label: "Night out", line: "cp, hauz, last train", cats: ["nightlife", "food", "experience"] },
+]
 
 export function Plan() {
   const {
@@ -19,7 +27,8 @@ export function Plan() {
     requestLoc,
     locLabel,
   } = useDay()
-  const [moods, setMoods] = useState<Category[]>(["heritage", "food"])
+  const [intent, setIntent] = useState<(typeof INTENTS)[number]["id"]>("foodie")
+  const moods = INTENTS.find((m) => m.id === intent)?.cats ?? ["food"]
   const [hours, setHours] = useState(6)
   const [startId, setStartId] = useState("rajiv-chowk")
 
@@ -39,10 +48,6 @@ export function Plan() {
   const travelMin = route
     ? route.durationMin
     : legs.reduce((n, l) => n + (l.mode === "walk" ? l.walkMin : l.cabMin), 0)
-
-  function toggleMood(c: Category) {
-    setMoods((m) => (m.includes(c) ? m.filter((x) => x !== c) : [...m, c]))
-  }
 
   function compose() {
     const day = composeDay({ moods, hours, start, places: PLACES })
@@ -89,18 +94,19 @@ export function Plan() {
         </div>
         <div className="composer">
           <div className="field">
-            <label>Moods</label>
+            <label>Mood</label>
             <div className="moods">
-              {CATEGORIES.map((c) => (
+              {INTENTS.map((m) => (
                 <button
-                  key={c}
-                  className={`chip${moods.includes(c) ? " is-on" : ""}`}
-                  onClick={() => toggleMood(c)}
+                  key={m.id}
+                  className={`chip${intent === m.id ? " is-on" : ""}`}
+                  onClick={() => setIntent(m.id)}
                 >
-                  {CATEGORY_META[c].label}
+                  {m.label}
                 </button>
               ))}
             </div>
+            <p className="status">{INTENTS.find((m) => m.id === intent)?.line}</p>
           </div>
           <div className="field">
             <label>
@@ -131,9 +137,11 @@ export function Plan() {
             </select>
           </div>
           <div className="hero-cta">
-            <button className="btn" onClick={compose}>
-              Compose this day
-            </button>
+            <Magnetic strength={0.28}>
+              <button className="btn" onClick={compose}>
+                Compose this day
+              </button>
+            </Magnetic>
             <button className="btn ghost" onClick={requestLoc}>
               Locate me
             </button>

@@ -10,6 +10,7 @@ import {
 import { PLACE_BY_ID, PLACES } from "./data/places"
 import { fetchRoute, fetchWeather, searchPhoton } from "./lib/apis"
 import { inDelhi, placeToStop } from "./lib/geo"
+import { zoneOf, type Zone } from "./lib/zones"
 import type {
   Category,
   OsmHit,
@@ -26,7 +27,12 @@ type Ctx = {
   setQuery: (q: string) => void
   category: Category | "all"
   setCategory: (c: Category | "all") => void
+  zone: Zone | "all"
+  setZone: (z: Zone | "all") => void
   filtered: Place[]
+  saved: string[]
+  toggleSave: (id: string) => void
+  isSaved: (id: string) => boolean
   selected: Place | null
   openPlace: (id: string) => void
   closePlace: () => void
@@ -59,6 +65,21 @@ type Ctx = {
 
 const DayContext = createContext<Ctx | null>(null)
 
+function readSaved(): string[] {
+  try {
+    const raw = localStorage.getItem("delhi-saved")
+    if (!raw) return []
+    return (JSON.parse(raw) as string[]).filter((id) => Boolean(PLACE_BY_ID[id]))
+  } catch {
+    return []
+  }
+}
+
+function hourIsNight() {
+  const h = new Date().getHours()
+  return h >= 19 || h < 6
+}
+
 function readDayFromUrl(): Stop[] {
   const raw = new URLSearchParams(window.location.search).get("day")
   if (!raw) {
@@ -80,6 +101,8 @@ function readDayFromUrl(): Stop[] {
 export function DayProvider({ children }: { children: ReactNode }) {
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<Category | "all">("all")
+  const [zone, setZone] = useState<Zone | "all">("all")
+  const [saved, setSaved] = useState<string[]>(readSaved)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [itinerary, setItineraryState] = useState<Stop[]>(readDayFromUrl)
   const [userLoc, setUserLoc] = useState<Loc | null>(null)
@@ -98,7 +121,7 @@ export function DayProvider({ children }: { children: ReactNode }) {
   const [dockOpen, setDockOpen] = useState(false)
   const [metroLine, setMetroLine] = useState<string | "all" | null>(null)
   const [showMetro, setShowMetro] = useState(true)
-  const [isNight, setNight] = useState(false)
+  const [isNight, setNight] = useState(hourIsNight)
 
   const selected = selectedId ? (PLACE_BY_ID[selectedId] ?? null) : null
 
@@ -108,6 +131,7 @@ export function DayProvider({ children }: { children: ReactNode }) {
       if (category !== "all" && p.category !== category && !p.tags.includes(category)) {
         return false
       }
+      if (zone !== "all" && zoneOf(p) !== zone) return false
       if (!q) return true
       return (
         p.name.toLowerCase().includes(q) ||
@@ -117,7 +141,7 @@ export function DayProvider({ children }: { children: ReactNode }) {
         p.blurb.toLowerCase().includes(q)
       )
     })
-  }, [query, category])
+  }, [query, category, zone])
 
   const setItinerary = useCallback((s: Stop[]) => {
     setItineraryState(s)
@@ -151,6 +175,12 @@ export function DayProvider({ children }: { children: ReactNode }) {
     (id: string) => itinerary.some((s) => s.id === id),
     [itinerary],
   )
+
+  const toggleSave = useCallback((id: string) => {
+    setSaved((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
+  }, [])
+
+  const isSaved = useCallback((id: string) => saved.includes(id), [saved])
 
   const openPlace = useCallback((id: string) => {
     setSelectedId(id)
@@ -199,6 +229,14 @@ export function DayProvider({ children }: { children: ReactNode }) {
       })
     return () => ctrl.abort()
   }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("delhi-saved", JSON.stringify(saved))
+    } catch {
+      /* ignore */
+    }
+  }, [saved])
 
   useEffect(() => {
     try {
@@ -269,7 +307,12 @@ export function DayProvider({ children }: { children: ReactNode }) {
       setQuery,
       category,
       setCategory,
+      zone,
+      setZone,
       filtered,
+      saved,
+      toggleSave,
+      isSaved,
       selected,
       openPlace,
       closePlace,
@@ -302,7 +345,11 @@ export function DayProvider({ children }: { children: ReactNode }) {
     [
       query,
       category,
+      zone,
       filtered,
+      saved,
+      toggleSave,
+      isSaved,
       selected,
       openPlace,
       closePlace,

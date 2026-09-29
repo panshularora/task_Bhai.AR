@@ -10,9 +10,11 @@ import {
 } from "../data/metro"
 import { CATEGORY_META } from "../data/places"
 import { DELHI, formatKm, haversineKm } from "../lib/geo"
+import { ZONE_META, ZONES } from "../lib/zones"
 import { busesToGeoJSON, fetchLiveBuses, type LiveFleet } from "../lib/otd"
 import { useDay } from "../state"
 import type { Place } from "../types"
+import { HoverPeek } from "./HoverPeek"
 import { StationSelect } from "./Metro"
 
 const SATELLITE: maplibregl.StyleSpecification = {
@@ -63,6 +65,9 @@ export default function DelhiMap() {
     setMetroLine,
     mapTarget,
     inDay,
+    zone,
+    setZone,
+    isNight,
   } = useDay()
 
   // Initialize MapLibre
@@ -201,21 +206,54 @@ export default function DelhiMap() {
     })
   }, [mapTarget])
 
-  // Update Itinerary Line
+  // Draw itinerary line in, point by point
   useEffect(() => {
     const map = mapRef.current
     if (!map?.isStyleLoaded()) return
     const line = route?.geometry?.map(([lat, lng]) => [lng, lat]) ?? itinerary.map((s) => [s.lng, s.lat])
     const src = map.getSource("day-route") as GeoJSONSource | undefined
-    src?.setData({
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "LineString",
-        coordinates: line.length > 1 ? line : [],
-      },
-    })
+    if (!src) return
+    if (line.length < 2) {
+      src.setData({
+        type: "Feature",
+        properties: {},
+        geometry: { type: "LineString", coordinates: [] },
+      })
+      return
+    }
+    let i = 2
+    let raf = 0
+    const step = () => {
+      src.setData({
+        type: "Feature",
+        properties: {},
+        geometry: { type: "LineString", coordinates: line.slice(0, i) },
+      })
+      i += Math.max(1, Math.ceil(line.length / 48))
+      if (i <= line.length) raf = window.requestAnimationFrame(step)
+    }
+    raf = window.requestAnimationFrame(step)
+    return () => window.cancelAnimationFrame(raf)
   }, [route, itinerary])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !selected) return
+    const popup = new maplibregl.Popup({
+      offset: 22,
+      closeButton: false,
+      className: "geo-card",
+      maxWidth: "200px",
+    })
+      .setLngLat([selected.lng, selected.lat])
+      .setHTML(
+        `<img src="${escAttr(selected.image)}" alt=""><strong>${escHtml(selected.name)}</strong><em>${escHtml(selected.kicker)}</em>`,
+      )
+      .addTo(map)
+    return () => {
+      popup.remove()
+    }
+  }, [selected])
 
   const flyToMetroJourney = () => {
     const map = mapRef.current
@@ -282,7 +320,25 @@ export default function DelhiMap() {
               : fleetErr ?? "Reading Open Transit Data…"}
           </p>
 
-          <p className="style-label">Satellite</p>
+          <p className="style-label">Satellite{isNight ? " · after dark" : " · day"}</p>
+          <div className="chips map-zones">
+            <button type="button" className={`chip${zone === "all" ? " is-on" : ""}`} onClick={() => setZone("all")}>
+              All
+            </button>
+            {ZONES.map((z) => (
+              <button
+                key={z}
+                type="button"
+                className={`chip${zone === z ? " is-on" : ""}`}
+                onClick={() => setZone(z)}
+              >
+                {ZONE_META[z].label}
+              </button>
+            ))}
+          </div>
+          <a className="btn ghost" href="#twin">
+            Open the twin
+          </a>
 
           {activeTab === "places" ? (
             <div className="map-places-list">
@@ -345,7 +401,7 @@ export default function DelhiMap() {
           )}
         </aside>
 
-        <div className="map-canvas">
+        <div className={`map-canvas${isNight ? " is-night" : ""}`}>
           <div ref={host} className="maplibre-host" />
         </div>
       </div>
@@ -353,16 +409,30 @@ export default function DelhiMap() {
   )
 }
 
+function escHtml(s: string) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+}
+
+function escAttr(s: string) {
+  return escHtml(s).replace(/'/g, "&#39;")
+}
+
 function PlaceRow({ place }: { place: Place }) {
   const { openPlace, userLoc } = useDay()
   return (
-    <button type="button" className="map-place" onClick={() => openPlace(place.id)}>
-      <strong>{place.name}</strong>
-      <span>
-        {CATEGORY_META[place.category].label} · {place.metro.station} ·{" "}
-        {formatKm(haversineKm(userLoc ?? DELHI, place))}
-      </span>
-    </button>
+    <HoverPeek src={place.image} alt={place.name}>
+      <button type="button" className="map-place" onClick={() => openPlace(place.id)}>
+        <strong>{place.name}</strong>
+        <span>
+          {CATEGORY_META[place.category].label} · {place.metro.station} ·{" "}
+          {formatKm(haversineKm(userLoc ?? DELHI, place))}
+        </span>
+      </button>
+    </HoverPeek>
   )
 }
 

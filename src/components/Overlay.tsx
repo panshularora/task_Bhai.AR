@@ -1,6 +1,8 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { useEffect, useState } from "react"
 import { CATEGORY_META, PLACES } from "../data/places"
+import { HoverPeek } from "./HoverPeek"
+import { Magnetic } from "./Magnetic"
 import { fetchNearby, fetchWeather, weatherLabel } from "../lib/apis"
 import { DELHI, estimateTravelMin, formatKm, haversineKm, placeToStop } from "../lib/geo"
 import { useDay } from "../state"
@@ -16,6 +18,8 @@ export function Overlay() {
     addStop,
     removeStop,
     inDay,
+    toggleSave,
+    isSaved,
     userLoc,
     itinerary,
     flyTo,
@@ -70,10 +74,14 @@ export function Overlay() {
               key={selected.id}
               className="sheet cine-sheet"
               data-lenis-prevent
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: "42%" }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: "18%" }}
-              transition={{ duration: 0.38, ease }}
+              initial={
+                reduceMotion
+                  ? { opacity: 0 }
+                  : { opacity: 1, clipPath: "circle(0% at 100% 12%)" }
+              }
+              animate={{ opacity: 1, clipPath: "circle(160% at 100% 12%)" }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 1, clipPath: "circle(0% at 100% 12%)" }}
+              transition={{ duration: 0.46, ease }}
               style={{ overflowY: "auto" }}
               onWheel={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
@@ -144,34 +152,48 @@ export function Overlay() {
                   <p className="status">{selected.tips.join(" ")}</p>
                 )}
                 <div className="hero-cta" style={{ marginTop: 16 }}>
-                  {inDay(selected.id) ? (
-                    <button className="btn ghost" onClick={() => removeStop(selected.id)}>
-                      Remove from day
+                  <Magnetic strength={0.22}>
+                    {inDay(selected.id) ? (
+                      <button className="btn ghost" onClick={() => removeStop(selected.id)}>
+                        Remove from day
+                      </button>
+                    ) : (
+                      <button className="btn" onClick={() => addStop(placeToStop(selected))}>
+                        Add to day
+                      </button>
+                    )}
+                  </Magnetic>
+                  <Magnetic strength={0.22}>
+                    <button
+                      className={`btn ghost${isSaved(selected.id) ? " is-kept" : ""}`}
+                      onClick={() => toggleSave(selected.id)}
+                    >
+                      {isSaved(selected.id) ? "Kept" : "Keep this"}
                     </button>
-                  ) : (
-                    <button className="btn" onClick={() => addStop(placeToStop(selected))}>
-                      Add to day
-                    </button>
-                  )}
-                  <button
-                    className="btn ghost"
-                    onClick={() => {
-                      flyTo(selected.lat, selected.lng, 16)
-                      closePlace()
-                      document.getElementById("map")?.scrollIntoView({ behavior: "smooth" })
-                    }}
-                  >
-                    Show on map
-                  </button>
+                  </Magnetic>
+                  <Magnetic strength={0.22}>
+                    <a
+                      className="btn ghost"
+                      href="#map"
+                      onClick={() => {
+                        flyTo(selected.lat, selected.lng, 16)
+                        closePlace()
+                      }}
+                    >
+                      Show on map
+                    </a>
+                  </Magnetic>
                 </div>
                 <Sculpt place={selected} />
                 <div className="nearby">
                   <h3>Curated neighbours</h3>
                   {cousins.map(({ p, km }) => (
-                    <button key={p.id} onClick={() => openPlace(p.id)}>
-                      {p.name}
-                      <span className="status"> · {formatKm(km)}</span>
-                    </button>
+                    <HoverPeek key={p.id} src={p.image} alt={p.name}>
+                      <button type="button" onClick={() => openPlace(p.id)}>
+                        {p.name}
+                        <span className="status"> · {formatKm(km)}</span>
+                      </button>
+                    </HoverPeek>
                   ))}
                   <h3>OpenStreetMap around this pin</h3>
                   {nearErr && <p className="status">{nearErr}</p>}

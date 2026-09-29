@@ -158,6 +158,7 @@ a {
   font-weight: 500;
 }
 .nav-links {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -173,25 +174,19 @@ a {
   opacity: 0.7;
   transition: opacity 180ms var(--ease);
 }
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-link.is-on {
   opacity: 1;
 }
-.nav-link::after {
-  content: "";
+.nav-ink {
   position: absolute;
   left: 0;
-  right: 0;
   bottom: 0;
   height: 1px;
-  background: var(--brass);
-  transform: scaleX(0);
+  background: var(--mint);
+  pointer-events: none;
   transform-origin: left;
-  transition: transform 220ms var(--ease);
-}
-@media (hover: hover) and (pointer: fine) {
-  .nav-link:hover::after {
-    transform: scaleX(1);
-  }
+  transition: transform 280ms var(--ease), width 280ms var(--ease);
 }
 .wx {
   display: flex;
@@ -1404,10 +1399,49 @@ a {
   min-height: 78vh;
   position: relative;
 }
+.map-canvas.is-night .maplibre-host {
+  filter: brightness(0.72) saturate(0.82) hue-rotate(-12deg);
+}
+.map-zones {
+  flex-wrap: wrap;
+  margin: 8px 0 10px;
+}
 .maplibre-host {
   height: 78vh;
   width: 100%;
   background: #0e1114;
+  cursor: grab;
+}
+.maplibre-host:active {
+  cursor: grabbing;
+}
+.maplibregl-popup.geo-card .maplibregl-popup-content {
+  background: var(--polaroid);
+  color: #1a1612;
+  padding: 8px 8px 18px;
+  border-radius: 0;
+  box-shadow: var(--shadow);
+}
+.maplibregl-popup.geo-card img {
+  width: 168px;
+  height: 112px;
+  object-fit: cover;
+  display: block;
+  margin-bottom: 6px;
+}
+.maplibregl-popup.geo-card strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.maplibregl-popup.geo-card em {
+  font-family: var(--font-hand);
+  font-style: normal;
+  font-size: 14px;
+  color: #5a4a40;
 }
 .maplibregl-ctrl-attrib {
   background: rgba(11, 12, 14, 0.7) !important;
@@ -2613,6 +2647,8 @@ a {
   border-bottom: 1px solid var(--line);
   padding: 14px 0;
   background: var(--ink);
+  transform: skewX(calc(var(--scroll-v, 0) * -4deg));
+  transition: transform 90ms linear;
 }
 .craft-marquee-track {
   display: flex;
@@ -2899,6 +2935,9 @@ a {
   display: block;
   white-space: nowrap;
   overflow: visible;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
 }
 .zine-en .char {
   display: inline-block;
@@ -3392,6 +3431,9 @@ a {
 }
 
 @media (max-width: 860px) {
+  .nav-ink {
+    display: none;
+  }
   .plate,
   .reel,
   .hang-scrolly {
@@ -3482,6 +3524,207 @@ a {
     scroll-snap-align: center;
     width: 72vw;
   }
+}
+
+.peek {
+  display: block;
+  cursor: pointer;
+}
+.peek-shot {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 90;
+  pointer-events: none;
+  width: 148px;
+  padding: 8px 8px 22px;
+  background: var(--polaroid);
+  box-shadow: var(--shadow);
+}
+.peek-shot img {
+  width: 100%;
+  height: 108px;
+  object-fit: cover;
+  display: block;
+}
+
+.orbit {
+  position: relative;
+  min-height: 100svh;
+  padding: calc(var(--nav-h) + 20px) var(--gutter) 40px;
+  overflow: hidden;
+}
+.orbit-ask {
+  text-align: center;
+  color: var(--brass);
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+.orbit-stage {
+  position: relative;
+  height: min(58vh, 520px);
+  max-width: 920px;
+  margin: 0 auto;
+}
+.orbit-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-hi);
+  font-size: clamp(52px, 11vw, 104px);
+  margin: 0;
+  color: var(--bone);
+  pointer-events: none;
+  letter-spacing: -0.03em;
+  z-index: 0;
+  opacity: 0.88;
+}
+.orbit-ring {
+  position: absolute;
+  inset: 0;
+}
+.orbit-slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(var(--deg, 0deg))
+    translateY(min(-24vh, -190px)) rotate(var(--ndeg, 0deg));
+}
+.orbit-slot .magnetic,
+.orbit-slot .orbit-word {
+  pointer-events: auto;
+}
+.orbit-word {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: clamp(22px, 3.4vw, 42px);
+  text-transform: uppercase;
+  color: var(--bone);
+  letter-spacing: 0.06em;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 180ms var(--ease), transform 180ms var(--ease);
+}
+.orbit-word:focus-visible {
+  outline: 1px solid var(--mint);
+  outline-offset: 6px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .orbit-word:hover {
+    color: var(--stamp);
+    transform: skewX(-6deg);
+  }
+}
+.orbit-word.is-on {
+  color: var(--mint);
+}
+.orbit-burst {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  list-style: none;
+  margin: 8px auto 0;
+  padding: 0;
+  max-width: 720px;
+  z-index: 3;
+}
+.orbit-burst li {
+  animation: burst-in 0.42s var(--ease) both;
+  animation-delay: var(--delay, 0ms);
+}
+.orbit-burst button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ink);
+  border: 1px solid var(--line-strong);
+  color: var(--bone);
+  padding: 4px 10px 4px 4px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.orbit-burst img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  display: block;
+}
+.orbit-stats {
+  display: flex;
+  justify-content: center;
+  gap: clamp(28px, 7vw, 80px);
+  margin: 28px auto 0;
+  max-width: var(--rail);
+  position: relative;
+  z-index: 2;
+}
+.orbit-stats dt {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mist);
+  margin: 0 0 2px;
+}
+.orbit-stats dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 5vw, 48px);
+  line-height: 0.9;
+}
+@keyframes burst-in {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .orbit-ring {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 18px;
+    padding: 24px 0 8px;
+  }
+  .orbit-slot {
+    position: static;
+    transform: none;
+    pointer-events: auto;
+  }
+  .orbit-stage {
+    height: auto;
+    min-height: 0;
+  }
+  .orbit-core {
+    position: static;
+    transform: none;
+    text-align: center;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .orbit-burst {
+    margin-top: 16px;
+  }
+}
+
+.btn.is-kept {
+  color: var(--mint);
 }
 
 .day-path {
@@ -3636,6 +3879,15 @@ a {
   }
   .twin-caption {
     animation: none;
+  }
+  .orbit-burst li {
+    animation: none;
+  }
+  .orbit-word:hover {
+    transform: none;
+  }
+  .craft-marquee {
+    transform: none;
   }
   .polaroid,
   .zine-shot,
